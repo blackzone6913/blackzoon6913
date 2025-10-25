@@ -1,0 +1,42 @@
+body {
+  font-family: 'Noto Sans Bengali', sans-serif;
+  background: #0d0d0d;
+  color: #fff;
+  margin: 0;
+  padding: 15px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 15px;
+  font-size: 2rem;
+}
+
+#searchBar {
+  display: block;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto 20px auto;
+  padding: 10px 12px;
+  font-size: 1rem;
+  border-radius: 12px;
+  border: none;
+  outline: none;
+  color: #000;
+  background: #fff;
+}
+
+#videos { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; }
+
+.card { background:#1a1a1a; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; transition: transform 0.3s;}
+.card:hover { transform: scale(1.05); }
+
+.thumbnail { width:100%; aspect-ratio:16/9; object-fit:cover; cursor:pointer; }
+.card-content { padding:10px; text-align:center; }
+
+button { padding:6px 12px; border:2px solid #0d6efd; border-radius:10px; background:transparent; color:#0d6efd; cursor:pointer; }
+button:hover { background:#0d6efd; color:#fff; }
+
+#overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); display:none; justify-content:center; align-items:center; flex-direction:column; z-index:9999; }
+#overlay iframe { width:95%; max-width:900px; height:506px; border:none; border-radius:12px; }
+#overlay span { position:absolute; top:20px; right:25px; color:#fff; font-size:45px; cursor:pointer; }

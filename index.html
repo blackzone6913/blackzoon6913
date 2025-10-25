@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎬 রিয়েল-টাইম ভিডিও গ্যালারি</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>🎬 রিয়েল-টাইম ভিডিও গ্যালারি</h1>
+<input type="text" id="searchBar" placeholder="ভিডিও খুঁজুন...">
+<div id="videos"></div>
+
+<div id="overlay">
+  <span onclick="closeOverlay()">×</span>
+  <iframe id="videoPlayer" allowfullscreen></iframe>
+</div>
+
+<script>
+// ==================== এখানে তোমার Google Drive API & ফোল্ডার ID ব্যবহার করো ====================
+const VIDEO_FOLDER_ID = "তোমার_VIDEO_FOLDER_ID"; 
+const THUMB_FOLDER_ID = "তোমার_THUMB_FOLDER_ID"; 
+const API_KEY = "তোমার_API_KEY";
+
+const DEFAULT_THUMB = "https://via.placeholder.com/320x180?text=Video";
+let thumbnails = {}, videosList = [];
+
+async function loadThumbnails() {
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q='${THUMB_FOLDER_ID}'+in+parents&key=${API_KEY}&fields=files(id,name,mimeType)`);
+    const data = await res.json();
+    data.files.forEach(f => {
+      if(f.mimeType.startsWith("image/")){
+        const cleanName = f.name.split('.')[0].toLowerCase().replace(/\s+/g,'');
+        thumbnails[cleanName] = `https://drive.google.com/thumbnail?id=${f.id}&v=${Date.now()}`;
+      }
+    });
+  } catch(e) { console.log("Thumbnail fetch error:", e); }
+}
+
+async function loadVideos() {
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q='${VIDEO_FOLDER_ID}'+in+parents&key=${API_KEY}&fields=files(id,name,mimeType)`);
+    const data = await res.json();
+    return data.files.filter(v => v.mimeType.startsWith("video/"));
+  } catch(e) { console.log("Video fetch error:", e); return []; }
+}
+
+function displayVideo(v){
+  const container = document.getElementById('videos');
+  const baseName = v.name.split('.')[0].toLowerCase().replace(/\s+/g,'');
+  const thumb = thumbnails[baseName] || DEFAULT_THUMB;
+  const div = document.createElement('div');
+  div.className='card';
+  div.innerHTML=`
+    <img class="thumbnail" src="${thumb}" onclick="playVideo('${v.id}')"/>
+    <div class="card-content">
+      <p title="${v.name}">${v.name}</p>
+      <button onclick="downloadVideo('${v.id}','${v.name}')">ডাউনলোড</button>
+    </div>
+  `;
+  container.prepend(div);
+}
+
+document.getElementById("searchBar").addEventListener("input",(e)=>{
+  const query = e.target.value.toLowerCase().replace(/\s+/g,'');
+  const filtered = videosList.filter(v=>v.name.toLowerCase().replace(/\s+/g,'').includes(query));
+  document.getElementById('videos').innerHTML = "";
+  filtered.forEach(v=>displayVideo(v));
+});
+
+function playVideo(id){
+  const overlay = document.getElementById('overlay');
+  const player = document.getElementById('videoPlayer');
+  player.src = `https://drive.google.com/file/d/${id}/preview`;
+  overlay.style.display = 'flex';
+}
+function closeOverlay(){
+  const overlay = document.getElementById('overlay');
+  const player = document.getElementById('videoPlayer');
+  player.src = '';
+  overlay.style.display = 'none';
+}
+function downloadVideo(id,name){
+  const a = document.createElement('a');
+  a.href = `https://drive.google.com/uc?export=download&id=${id}`;
+  a.download = name;
+  a.click();
+}
+
+async function autoUpdate(){
+  const currentIds = videosList.map(v=>v.id);
+  const latestVideos = await loadVideos();
+  for(const v of latestVideos){
+    if(!currentIds.includes(v.id)){
+      videosList.push(v);
+      const baseName = v.name.split('.')[0].toLowerCase().replace(/\s+/g,'');
+      try{
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files?q='${THUMB_FOLDER_ID}'+in+parents+and+name contains '${v.name.split('.')[0]}'&key=${API_KEY}&fields=files(id,name)`);
+        const data = await res.json();
+        if(data.files.length>0){
+          thumbnails[baseName] = `https://drive.google.com/thumbnail?id=${data.files[0].id}&v=${Date.now()}`;
+        }
+      }catch(e){ console.log("Thumbnail fetch error:", e); }
+      displayVideo(v);
+    }
+  }
+}
+
+(async()=>{
+  videosList = await loadVideos();
+  await loadThumbnails();
+  videosList.forEach(v=>displayVideo(v));
+})();
+setInterval(autoUpdate, 5000);
+</script>
+
+</body>
+</html>
